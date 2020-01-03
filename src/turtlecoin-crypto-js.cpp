@@ -15,6 +15,12 @@ struct Keys
     std::string secretKey;
 };
 
+struct MultiSigKeys
+{
+    std::string publicSpendKey;
+    std::string secretViewKey;
+};
+
 /* Most of the redefintions below are the result of the methods returning a bool instead
    of the value we need or issues with method signatures having a uint64_t */
 
@@ -91,6 +97,28 @@ Keys generateDeterministicSubwalletKeys(const std::string basePrivateKey, const 
     Keys keys;
 
     Core::Cryptography::generateDeterministicSubwalletKeys(basePrivateKey, walletIndex, keys.secretKey, keys.publicKey);
+
+    return keys;
+}
+
+MultiSigKeys generateNN(
+    const std::string ourPublicSpendKey,
+    const std::string ourPrivateViewKey,
+    const std::vector<std::string> publicSpendKeys,
+    const std::vector<std::string> secretViewKeys
+)
+{
+    std::string sharedPublicSpendKey;
+
+    std::string sharedSecretViewKey;
+
+    Core::Cryptography::generate_n_n(ourPublicSpendKey, ourPrivateViewKey, publicSpendKeys, secretViewKeys, sharedPublicSpendKey, sharedSecretViewKey);
+
+    MultiSigKeys keys;
+
+    keys.publicSpendKey = sharedPublicSpendKey;
+
+    keys.secretViewKey = sharedSecretViewKey;
 
     return keys;
 }
@@ -182,6 +210,7 @@ EMSCRIPTEN_BINDINGS(signatures)
     function("generateViewKeysFromPrivateSpendKey", &generateViewKeysFromPrivateSpendKey);
     function("generateKeys", &generateKeys);
     function("generateDeterministicSubwalletKeys", &generateDeterministicSubwalletKeys);
+    function("generateNN", &generateNN);
     function("checkKey", &Core::Cryptography::checkKey);
     function("secretKeyToPublicKey", &secretKeyToPublicKey);
     function("generateKeyDerivation", &generateKeyDerivation);
@@ -195,8 +224,11 @@ EMSCRIPTEN_BINDINGS(signatures)
     function("hashToEllipticCurve", &Core::Cryptography::hashToEllipticCurve);
     function("scReduce32", &Core::Cryptography::scReduce32);
     function("hashToScalar", &Core::Cryptography::hashToScalar);
+    function("restoreKeyImage", &Core::Cryptography::restoreKeyImage);
 
     register_vector<std::string>("VectorString");
 
     value_object<Keys>("Keys").field("secretKey", &Keys::secretKey).field("publicKey", &Keys::publicKey);
+
+    value_object<MultiSigKeys>("Keys").field("secretViewKey", &MultiSigKeys::secretViewKey).field("publicSpendKey", &MultiSigKeys::publicSpendKey);
 }

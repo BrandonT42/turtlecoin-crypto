@@ -19,6 +19,7 @@
 #endif
 
 #include <crypto.h>
+#include <multisig.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -124,6 +125,20 @@ extern "C"
               const uint64_t walletIndex,
               std::string &privateKey,
               std::string &publicKey);
+            static void generate_n_n(
+                const std::string &ourPublicSpendKey,
+                const std::string &ourPrivateViewKey,
+                const std::vector<std::string> &publicSpendKeys,
+                const std::vector<std::string> &secretSpendKeys,
+                std::string &sharedPublicSpendKey,
+                std::string &sharedPrivateViewKey
+            );
+            static std::string restoreKeyImage(
+                const std::string &publicEphemeral,
+                const std::string &derivation,
+                const size_t output_index,
+                const std::vector<std::string> &partialKeyImages
+            );
         };
     } // namespace Core
 

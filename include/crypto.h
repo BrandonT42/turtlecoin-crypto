@@ -18,16 +18,6 @@
 
 namespace Crypto
 {
-    struct EllipticCurvePoint
-    {
-        uint8_t data[32];
-    };
-
-    struct EllipticCurveScalar
-    {
-        uint8_t data[32];
-    };
-
     class crypto_ops
     {
         crypto_ops();

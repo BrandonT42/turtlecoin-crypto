@@ -783,6 +783,93 @@ namespace Core
 
         return false;
     }
+
+    std::string Cryptography::restoreKeyImage(
+        const std::string &publicEphemeral,
+        const std::string &derivation,
+        const size_t output_index,
+        const std::vector<std::string> &partialKeyImages
+    )
+    {
+        Crypto::PublicKey _publicEphemeral;
+
+        Common::podFromHex(publicEphemeral, _publicEphemeral);
+
+        Crypto::KeyDerivation _derivation;
+
+        Common::podFromHex(derivation, _derivation);
+
+        std::vector<Crypto::KeyImage> _partialKeyImages;
+
+        for (auto key : partialKeyImages)
+        {
+            Crypto::KeyImage _key;
+
+            Common::podFromHex(key, _key);
+
+            _partialKeyImages.push_back(_key);
+        }
+
+        Crypto::KeyImage _keyImage = Crypto::Multisig::restore_key_image(_publicEphemeral, _derivation, output_index, _partialKeyImages);
+
+        return Common::podToHex(_keyImage);
+    }
+
+    void Cryptography::generate_n_n(
+        const std::string &ourPublicSpendKey,
+        const std::string &ourPrivateViewKey,
+        const std::vector<std::string> &publicSpendKeys,
+        const std::vector<std::string> &secretSpendKeys,
+        std::string &sharedPublicSpendKey,
+        std::string &sharedPrivateViewKey
+    )
+    {
+        Crypto::PublicKey _ourPublicSpendKey;
+
+        Common::podFromHex(ourPublicSpendKey, _ourPublicSpendKey);
+
+        Crypto::SecretKey _ourSecretViewKey;
+
+        Common::podFromHex(ourPrivateViewKey, _ourSecretViewKey);
+
+        std::vector<Crypto::PublicKey> _publicSpendKeys;
+
+        for (const auto key : publicSpendKeys)
+        {
+            Crypto::PublicKey _key;
+
+            Common::podFromHex(key, _key);
+
+            _publicSpendKeys.push_back(_key);
+        }
+
+        std::vector<Crypto::SecretKey> _secretSpendKeys;
+
+        for (const auto key : secretSpendKeys)
+        {
+            Crypto::SecretKey _key;
+
+            Common::podFromHex(key, _key);
+
+            _secretSpendKeys.push_back(_key);
+        }
+
+        Crypto::PublicKey _sharedPublicSpendKey;
+
+        Crypto::SecretKey _sharedPrivateViewKey;
+
+        Crypto::Multisig::generate_n_n(
+            _ourPublicSpendKey,
+            _ourSecretViewKey,
+            _publicSpendKeys,
+            _secretSpendKeys,
+            _sharedPublicSpendKey,
+            _sharedPrivateViewKey);
+
+        sharedPublicSpendKey = Common::podToHex(_sharedPublicSpendKey);
+
+        sharedPrivateViewKey = Common::podToHex(_sharedPrivateViewKey);
+    }
 } // namespace Core
 
 inline void tree_hash(const char *hashes, const uint64_t hashesLength, char *&hash)

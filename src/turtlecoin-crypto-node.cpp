@@ -34,6 +34,151 @@ inline v8::Local<v8::Array> prepareResult(const bool success, const v8::Local<v8
  *
  */
 
+void generateNN(const Nan::FunctionCallbackInfo<v8::Value> &info)
+{
+    /* Setup our return object */
+    v8::Local<v8::Object> jsonObject = Nan::New<v8::Object>();
+
+    bool functionSuccess = false;
+
+    std::string ourPublicSpendKey = std::string();
+
+    std::string ourPrivateViewKey = std::string();
+
+    std::vector<std::string> publicSpendKeys;
+
+    std::vector<std::string> privateViewKeys;
+
+    if (info.Length() == 4)
+    {
+        if (info[0]->IsString())
+        {
+            ourPublicSpendKey = std::string(
+                *Nan::Utf8String(info[0]->ToString(Nan::GetCurrentContext()).FromMaybe(v8::Local<v8::String>())));
+        }
+
+        if (info[1]->IsString())
+        {
+            ourPrivateViewKey = std::string(
+                *Nan::Utf8String(info[1]->ToString(Nan::GetCurrentContext()).FromMaybe(v8::Local<v8::String>())));
+        }
+
+        if (info[2]->IsArray())
+        {
+            v8::Local<v8::Array> array = v8::Local<v8::Array>::Cast(info[2]);
+
+            for (size_t i = 0; i < array->Length(); i++)
+            {
+                std::string hash = std::string(*Nan::Utf8String(Nan::Get(array, i).ToLocalChecked()));
+
+                publicSpendKeys.push_back(hash);
+            }
+        }
+
+        if (info[3]->IsArray())
+        {
+            v8::Local<v8::Array> array = v8::Local<v8::Array>::Cast(info[3]);
+
+            for (size_t i = 0; i < array->Length(); i++)
+            {
+                std::string hash = std::string(*Nan::Utf8String(Nan::Get(array, i).ToLocalChecked()));
+
+                privateViewKeys.push_back(hash);
+            }
+        }
+
+        if (!ourPublicSpendKey.empty() && !ourPrivateViewKey.empty() && publicSpendKeys.size() != 0 && privateViewKeys.size() != 0)
+        {
+            std::string sharedPublicSpendKey = std::string();
+
+            std::string sharedPrivateViewKey = std::string();
+
+            Core::Cryptography::generate_n_n(
+                ourPublicSpendKey,
+                ourPrivateViewKey,
+                publicSpendKeys,
+                privateViewKeys,
+                sharedPublicSpendKey,
+                sharedPrivateViewKey);
+
+            v8::Local<v8::String> publicKeyProp = Nan::New("publicSpendKey").ToLocalChecked();
+
+            v8::Local<v8::String> secretKeyProp = Nan::New("secretViewKey").ToLocalChecked();
+
+            v8::Local<v8::Value> publicKeyValue = Nan::New(sharedPublicSpendKey).ToLocalChecked();
+
+            v8::Local<v8::Value> secretKeyValue = Nan::New(sharedPrivateViewKey).ToLocalChecked();
+
+            Nan::Set(jsonObject, publicKeyProp, publicKeyValue);
+
+            Nan::Set(jsonObject, secretKeyProp, secretKeyValue);
+
+            functionSuccess = true;
+        }
+    }
+
+    info.GetReturnValue().Set(prepareResult(functionSuccess, jsonObject));
+}
+
+void restoreKeyImage(const Nan::FunctionCallbackInfo<v8::Value> &info)
+{
+    /* Setup our return object */
+    v8::Local<v8::Value> functionReturnValue = Nan::New(false);
+
+    bool functionSuccess = false;
+
+    std::string publicEphemeral = std::string();
+
+    std::string derivation = std::string();
+
+    size_t outputIndex = 0;
+
+    std::vector<std::string> partialKeyImages;
+
+    if (info.Length() == 4)
+    {
+        if (info[0]->IsString())
+        {
+            publicEphemeral = std::string(
+                *Nan::Utf8String(info[0]->ToString(Nan::GetCurrentContext()).FromMaybe(v8::Local<v8::String>())));
+        }
+
+        if (info[1]->IsString())
+        {
+            derivation = std::string(
+                *Nan::Utf8String(info[1]->ToString(Nan::GetCurrentContext()).FromMaybe(v8::Local<v8::String>())));
+        }
+
+        if (info[2]->IsNumber())
+        {
+            outputIndex = (size_t)Nan::To<uint32_t>(info[2]).FromJust();
+        }
+
+        if (info[3]->IsArray())
+        {
+            v8::Local<v8::Array> array = v8::Local<v8::Array>::Cast(info[3]);
+
+            for (size_t i = 0; i < array->Length(); i++)
+            {
+                std::string hash = std::string(*Nan::Utf8String(Nan::Get(array, i).ToLocalChecked()));
+
+                partialKeyImages.push_back(hash);
+            }
+        }
+
+        if (!publicEphemeral.empty() && !derivation.empty() && partialKeyImages.size() != 0)
+        {
+            std::string result = Core::Cryptography::restoreKeyImage(publicEphemeral, derivation, outputIndex, partialKeyImages);
+
+            functionReturnValue = Nan::New(result).ToLocalChecked();
+
+            functionSuccess = true;
+        }
+    }
+
+    info.GetReturnValue().Set(prepareResult(functionSuccess, functionReturnValue));
+}
+
 void checkKey(const Nan::FunctionCallbackInfo<v8::Value> &info)
 {
     /* Setup our return object */
@@ -1864,6 +2009,16 @@ void chukwa_slow_hash(const Nan::FunctionCallbackInfo<v8::Value> &info)
 NAN_MODULE_INIT(InitModule)
 {
     /* Core Cryptographic Operations */
+    Nan::Set(
+        target,
+        Nan::New("generateNN").ToLocalChecked(),
+        Nan::GetFunction(Nan::New<v8::FunctionTemplate>(generateNN)).ToLocalChecked());
+
+    Nan::Set(
+        target,
+        Nan::New("restoreKeyImage").ToLocalChecked(),
+        Nan::GetFunction(Nan::New<v8::FunctionTemplate>(restoreKeyImage)).ToLocalChecked());
+
     Nan::Set(
         target,
         Nan::New("checkKey").ToLocalChecked(),

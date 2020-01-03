@@ -701,5 +701,4 @@ namespace Crypto
            private key that is returned to the caller */
         sc_reduce32(reinterpret_cast<unsigned char *>(&subSpend.data));
     }
-
 } // namespace Crypto
